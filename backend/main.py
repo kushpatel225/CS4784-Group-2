@@ -4,7 +4,13 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("GEMINI_API_KEY"))
+
+try:
+    client.models.list()  # Lightweight endpoint
+    print("Valid key!")
+except Exception as e:
+    print("Invalid key:", e)
 
 app = Flask(__name__)
 
@@ -26,7 +32,7 @@ def test():
 def chat():
     data = request.json
     response = client.chat.completions.create(
-        model="gpt-4",
+        model="gpt-3.5-turbo",
         messages=data["messages"]
     )
     return jsonify({"reply": response.choices[0].message.content})

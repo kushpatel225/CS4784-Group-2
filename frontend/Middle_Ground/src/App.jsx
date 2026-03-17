@@ -1,35 +1,44 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
-
+export default function App({ onNavigate }) {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="landing">
+      <div className="landing-header">
+        <div className="ornament">✦</div>
+        <h1 className="landing-title">Arbiter</h1>
+        <p className="landing-subtitle">An omniscient mediator for those who cannot agree</p>
+        <div className="ornament-line"><span>✦ ✦ ✦</span></div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
+
+      <div className="landing-cards">
+        <button className="portal-card card-a" onClick={() => onNavigate('a')}>
+          <div className="card-sigil">I</div>
+          <div className="card-label">Person A</div>
+          <div className="card-desc">State your position. Your counsel awaits.</div>
         </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
+
+        <div className="vs-divider">
+          <div className="vs-line" />
+          <span className="vs-text">vs</span>
+          <div className="vs-line" />
+        </div>
+
+        <button className="portal-card card-b" onClick={() => onNavigate('b')}>
+          <div className="card-sigil">II</div>
+          <div className="card-label">Person B</div>
+          <div className="card-desc">Present your case. Be heard completely.</div>
+        </button>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
+
+      <button className="omniscient-btn" onClick={() => onNavigate('omniscient')}>
+        <span className="eye-icon">👁</span>
+        <span>Enter the Omniscient View</span>
+        <span className="eye-icon">👁</span>
+      </button>
+
+      <p className="landing-footer">
+        Each party speaks privately. The Arbiter sees all.
       </p>
-    </>
+    </div>
   )
 }
-
-export default App
