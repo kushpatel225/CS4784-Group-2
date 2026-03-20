@@ -18,7 +18,7 @@ export default function OmniscientScreen({ onBack }) {
 
   useEffect(() => {
     fetchAll()
-    const interval = setInterval(fetchAll, 3000)
+    const interval = setInterval(fetchAll, 5000)
     return () => clearInterval(interval)
   }, [])
 

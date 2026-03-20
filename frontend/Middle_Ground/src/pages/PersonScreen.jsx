@@ -32,13 +32,18 @@ export default function PersonScreen({ person, onBack }) {
   const [arbiterLoading, setArbiterLoading] = useState(false)
   const bottomRef = useRef(null)
 
+  const prevThreadLen = useRef(0)
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (thread.length > prevThreadLen.current) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+      prevThreadLen.current = thread.length
+    }
   }, [thread, coachMessages])
 
   useEffect(() => {
     fetchAll()
-    const interval = setInterval(fetchAll, 2000)
+    const interval = setInterval(fetchAll, 5000)
     return () => clearInterval(interval)
   }, [])
 

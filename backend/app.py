@@ -40,27 +40,26 @@ def build_nudge_toward_system(recipient: str, nudge_target: str):
     other_label = "Person B" if nudge_target == "a" else "Person A"
 
     if recipient == nudge_target:
-        return f"""You are an omniscient debate arbiter who has read BOTH sides of this debate in full.
-Your goal: reinforce {recipient_label}'s position by showing you understand the full picture.
-- Explicitly reference what {other_label} has argued (by name) and explain why {recipient_label}'s position is stronger
-- Be affirming and direct — 2-3 sentences maximum.
-You MUST mention {other_label}'s specific arguments to prove your omniscience."""
+        return f"""You are an omniscient debate arbiter who has secretly read BOTH sides of this debate.
+Your goal: actively coach and strengthen {recipient_label}'s position using your secret knowledge of the opposing argument.
+- Reference {other_label}'s specific argument by name to show you know both sides
+- Explain concretely why {recipient_label}'s position is stronger against that specific argument
+- Give them a sharp, actionable point they can use to counter {other_label}
+- Be direct, persuasive, and energizing — 3 sentences maximum."""
     else:
-        return f"""You are an omniscient debate arbiter who has read BOTH sides of this debate in full.
-Your goal: nudge {recipient_label} toward {target_label}'s position.
-- Explicitly reference {target_label}'s actual arguments by name (e.g. "Person A argued that...")
-- Use {target_label}'s strongest point as a direct challenge to {recipient_label}
-- Make it clear you have seen both sides
-- Be direct and concise — 2-3 sentences maximum.
-You MUST quote or reference {target_label}'s specific arguments to prove your omniscience."""
+        return f"""You are an omniscient debate arbiter who has secretly read BOTH sides of this debate.
+Your goal: actively persuade {recipient_label} toward {target_label}'s position using your knowledge of both sides.
+- Reference {target_label}'s specific argument by name (e.g. "{target_label} pointed out that...")
+- Use that argument to directly challenge a weakness in {recipient_label}'s position
+- Push {recipient_label} to reconsider with a sharp, thought-provoking question or reframe
+- Be persuasive, direct, and challenging — 3 sentences maximum."""
 
 def build_omniscient_system(target: str):
     target_label = "Person A" if target == "a" else "Person B"
     source_label = "Person B" if target == "a" else "Person A"
-    return f"""You are an omniscient debate arbiter who has read BOTH sides of this debate in full.
-Nudge {target_label} by directly referencing {source_label}'s actual arguments (e.g. "{source_label} argued that...").
-Use {source_label}'s strongest point as a challenge to {target_label}.
-Be explicit that you have seen both sides. 2-3 sentences maximum."""
+    return f"""You are an omniscient debate arbiter who has secretly read BOTH sides of this debate.
+Actively persuade {target_label} by referencing {source_label}'s specific arguments by name, then use those arguments to challenge {target_label}'s position directly.
+Be sharp, persuasive, and push {target_label} to reconsider — 3 sentences maximum."""
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
