@@ -7,7 +7,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+
+# Configure CORS to allow requests from frontend
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "http://localhost:3000",  # Local development
+            "http://localhost:5173",  # Vite dev server
+            "https://middleground.discovery.cs.vt.edu",  # CS Launch
+            "https://arbiter.discovery.cs.vt.edu",  # Self-referencing
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"],
+        "supports_credentials": True
+    }
+})
 
 client = Groq(api_key=os.environ["GROQ_API_KEY"])
 MODEL = "llama-3.3-70b-versatile"
@@ -122,11 +136,23 @@ def get_nudge(recipient: str, last_message: str):
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
+@app.route("/api/health", methods=["GET"])
+def health_check():
+    """Health check endpoint - doesn't require GROQ API key"""
+    return jsonify({"status": "ok", "message": "Backend is running"}), 200
+
 @app.route("/api/chat/a", methods=["POST"])
 def chat_a():
-    data = request.json
-    user_message = data.get("message", "")
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+        
+        user_message = data.get("message", "").strip()
+        if not user_message:
+            return jsonify({"error": "Message cannot be empty"}), 400
 
+<<<<<<< Updated upstream
     debate_state["shared"].append({"person": "a", "role": "user", "content": user_message})
 
     if debate_state["mode"] == "coach":
@@ -140,12 +166,41 @@ def chat_a():
         if nudge:
             debate_state["shared"].append({"person": "arbiter", "role": "nudge", "target": "a", "content": nudge})
         return jsonify({"reply": None, "nudge": nudge, "mode": "omniscient"})
+=======
+        debate_state["shared"].append({"person": "a", "role": "user", "content": user_message})
+        debate_state["person_a"]["history"].append({"role": "user", "content": user_message})
+
+        if debate_state["mode"] == "none":
+            return jsonify({"reply": None, "nudge": None, "mode": "none"})
+
+        elif debate_state["mode"] == "coach":
+            reply = groq_chat(AGENT_A_SYSTEM, debate_state["person_a"]["history"][:-1], user_message)
+            debate_state["person_a"]["history"].append({"role": "assistant", "content": reply})
+            return jsonify({"reply": reply, "nudge": None, "mode": "coach"})
+
+        else:  # omniscient
+            nudge = get_nudge("a", user_message)
+            if nudge:
+                debate_state["shared"].append({"person": "arbiter", "role": "nudge", "target": "a", "content": nudge})
+            return jsonify({"reply": None, "nudge": nudge, "mode": "omniscient"})
+    
+    except Exception as e:
+        print(f"Error in chat_a: {str(e)}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+>>>>>>> Stashed changes
 
 @app.route("/api/chat/b", methods=["POST"])
 def chat_b():
-    data = request.json
-    user_message = data.get("message", "")
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+        
+        user_message = data.get("message", "").strip()
+        if not user_message:
+            return jsonify({"error": "Message cannot be empty"}), 400
 
+<<<<<<< Updated upstream
     debate_state["shared"].append({"person": "b", "role": "user", "content": user_message})
 
     if debate_state["mode"] == "coach":
@@ -159,6 +214,28 @@ def chat_b():
         if nudge:
             debate_state["shared"].append({"person": "arbiter", "role": "nudge", "target": "b", "content": nudge})
         return jsonify({"reply": None, "nudge": nudge, "mode": "omniscient"})
+=======
+        debate_state["shared"].append({"person": "b", "role": "user", "content": user_message})
+        debate_state["person_b"]["history"].append({"role": "user", "content": user_message})
+
+        if debate_state["mode"] == "none":
+            return jsonify({"reply": None, "nudge": None, "mode": "none"})
+
+        elif debate_state["mode"] == "coach":
+            reply = groq_chat(AGENT_B_SYSTEM, debate_state["person_b"]["history"][:-1], user_message)
+            debate_state["person_b"]["history"].append({"role": "assistant", "content": reply})
+            return jsonify({"reply": reply, "nudge": None, "mode": "coach"})
+
+        else:  # omniscient
+            nudge = get_nudge("b", user_message)
+            if nudge:
+                debate_state["shared"].append({"person": "arbiter", "role": "nudge", "target": "b", "content": nudge})
+            return jsonify({"reply": None, "nudge": nudge, "mode": "omniscient"})
+    
+    except Exception as e:
+        print(f"Error in chat_b: {str(e)}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+>>>>>>> Stashed changes
 
 @app.route("/api/thread", methods=["GET"])
 def get_thread():
@@ -250,4 +327,4 @@ def reset():
     return jsonify({"status": "reset"})
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=False)

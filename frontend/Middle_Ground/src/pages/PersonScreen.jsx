@@ -1,20 +1,32 @@
 import { useState, useRef, useEffect } from 'react'
 import './PersonScreen.css'
 
+const API_BASE = 'https://backend-debater.discovery.cs.vt.edu'
+
 const CONFIG = {
   a: {
     label: 'Person A',
     sigil: 'I',
     color: 'crimson',
     placeholder: 'State your position...',
+<<<<<<< Updated upstream
     endpoint: '/api/chat/a',
+=======
+    endpoint: `${API_BASE}/api/chat/a`,
+    arbiterEndpoint: `${API_BASE}/api/arbiter/a`,
+>>>>>>> Stashed changes
   },
   b: {
     label: 'Person B',
     sigil: 'II',
     color: 'cobalt',
     placeholder: 'Present your argument...',
+<<<<<<< Updated upstream
     endpoint: '/api/chat/b',
+=======
+    endpoint: `${API_BASE}/api/chat/b`,
+    arbiterEndpoint: `${API_BASE}/api/arbiter/b`,
+>>>>>>> Stashed changes
   },
 }
 
@@ -42,8 +54,8 @@ export default function PersonScreen({ person, onBack }) {
   async function fetchAll() {
     try {
       const [threadRes, coachRes] = await Promise.all([
-        fetch('/api/thread'),
-        fetch(`/api/coach/${person}`),
+        fetch(`${API_BASE}/api/thread`),
+        fetch(`${API_BASE}/api/coach/${person}`),
       ])
       const threadData = await threadRes.json()
       const coachData = await coachRes.json()
