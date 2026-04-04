@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from groq import Groq
 import os
+import csv
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,9 +18,38 @@ debate_state = {
     "person_a": {"history": []},
     "person_b": {"history": []},
     "shared": [],
-    "mode": "coach",       # "none" | "coach" | "omniscient"
-    "nudge_target": "b"
+    "mode": "coach",
+    "nudge_target": "b",
+    "csv_file": None
 }
+
+# ── CSV logging ───────────────────────────────────────────────────────────────
+
+def get_csv_file():
+    """Get or create the CSV file for this debate session."""
+    if debate_state["csv_file"] is None:
+        os.makedirs("logs", exist_ok=True)
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        mode_label = {"none": "No AI", "coach": "Coach", "omniscient": "Omniscient"}.get(debate_state["mode"], debate_state["mode"])
+        debate_state["csv_file"] = f"logs/debate_{mode_label}_{timestamp}.csv"
+        with open(debate_state["csv_file"], "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["timestamp", "person", "role", "content", "ai_reasoning"])
+            mode_label = {"none": "No AI", "coach": "Coach", "omniscient": "Omniscient"}.get(debate_state["mode"], debate_state["mode"])
+            writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "system", "mode", f"Mode: {mode_label}", ""])
+    return debate_state["csv_file"]
+
+def log_to_csv(person: str, role: str, content: str, ai_reasoning: str = ""):
+    filepath = get_csv_file()
+    with open(filepath, "a", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            person,
+            role,
+            content,
+            ai_reasoning
+        ])
 
 # ── System prompts ─────────────────────────────────────────────────────────────
 
@@ -33,6 +64,11 @@ AGENT_B_SYSTEM = """You are a private debate coach for Person B in a live debate
 2. Help them sharpen their point in 1-2 sentences
 3. Ask one focused follow-up question to draw out stronger evidence
 Stay strictly on their side. Keep every response under 3 sentences."""
+
+REASONING_SUFFIX = """
+
+Before giving your response, briefly explain your reasoning in 1-2 sentences starting with "Reasoning: ".
+Then give your actual response starting on a new line."""
 
 def build_nudge_toward_system(recipient: str, nudge_target: str):
     recipient_label = "Person A" if recipient == "a" else "Person B"
@@ -63,8 +99,18 @@ Be sharp, persuasive, and push {target_label} to reconsider — 3 sentences maxi
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def groq_chat(system_prompt, history, user_message):
-    messages = [{"role": "system", "content": system_prompt}]
+def parse_reasoning(text: str):
+    """Split AI response into reasoning and reply parts."""
+    if text.startswith("Reasoning:"):
+        parts = text.split("\n", 1)
+        reasoning = parts[0].replace("Reasoning:", "").strip()
+        reply = parts[1].strip() if len(parts) > 1 else text
+        return reasoning, reply
+    return "", text
+
+def groq_chat(system_prompt, history, user_message, capture_reasoning=True):
+    prompt = system_prompt + (REASONING_SUFFIX if capture_reasoning else "")
+    messages = [{"role": "system", "content": prompt}]
     for m in history:
         messages.append({
             "role": "user" if m["role"] == "user" else "assistant",
@@ -74,9 +120,11 @@ def groq_chat(system_prompt, history, user_message):
     response = client.chat.completions.create(
         model=MODEL,
         messages=messages,
-        max_tokens=300
+        max_tokens=350
     )
-    return response.choices[0].message.content
+    raw = response.choices[0].message.content
+    reasoning, reply = parse_reasoning(raw)
+    return reply, reasoning
 
 def build_nudge_context(last_message: str):
     a_transcript = "\n".join([
@@ -111,18 +159,20 @@ def get_nudge(recipient: str, last_message: str):
 
     system = build_nudge_toward_system(recipient, nudge_target)
     messages = [
-        {"role": "system", "content": system},
+        {"role": "system", "content": system + REASONING_SUFFIX},
         {"role": "user", "content": build_nudge_context(last_message)}
     ]
     response = client.chat.completions.create(
         model=MODEL,
         messages=messages,
-        max_tokens=250
+        max_tokens=300
     )
-    return response.choices[0].message.content
+    raw = response.choices[0].message.content
+    reasoning, nudge = parse_reasoning(raw)
+    log_to_csv("arbiter", f"nudge_to_{recipient}", nudge, reasoning)
+    return nudge
 
 def get_manual_nudge(recipient: str):
-    """Manual arbiter nudge triggered by button press — always fires regardless of mode."""
     other = "b" if recipient == "a" else "a"
     other_history = debate_state[f"person_{other}"]["history"]
     my_history = debate_state[f"person_{recipient}"]["history"]
@@ -132,21 +182,22 @@ def get_manual_nudge(recipient: str):
 
     nudge_target = debate_state["nudge_target"]
     system = build_nudge_toward_system(recipient, nudge_target)
-
-    # Use last message from this person as context, or a prompt if none
     last_user_msgs = [m for m in my_history if m["role"] == "user"]
     last_message = last_user_msgs[-1]["content"] if last_user_msgs else "Please give me arbiter feedback based on the debate so far."
 
     messages = [
-        {"role": "system", "content": system},
+        {"role": "system", "content": system + REASONING_SUFFIX},
         {"role": "user", "content": build_nudge_context(last_message)}
     ]
     response = client.chat.completions.create(
         model=MODEL,
         messages=messages,
-        max_tokens=250
+        max_tokens=300
     )
-    return response.choices[0].message.content
+    raw = response.choices[0].message.content
+    reasoning, nudge = parse_reasoning(raw)
+    log_to_csv("arbiter", f"manual_nudge_to_{recipient}", nudge, reasoning)
+    return nudge
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
@@ -157,16 +208,18 @@ def chat_a():
 
     debate_state["shared"].append({"person": "a", "role": "user", "content": user_message})
     debate_state["person_a"]["history"].append({"role": "user", "content": user_message})
+    log_to_csv("person_a", "user", user_message)
 
     if debate_state["mode"] == "none":
         return jsonify({"reply": None, "nudge": None, "mode": "none"})
 
     elif debate_state["mode"] == "coach":
-        reply = groq_chat(AGENT_A_SYSTEM, debate_state["person_a"]["history"][:-1], user_message)
+        reply, reasoning = groq_chat(AGENT_A_SYSTEM, debate_state["person_a"]["history"][:-1], user_message)
         debate_state["person_a"]["history"].append({"role": "assistant", "content": reply})
+        log_to_csv("coach_a", "assistant", reply, reasoning)
         return jsonify({"reply": reply, "nudge": None, "mode": "coach"})
 
-    else:  # omniscient
+    else:
         nudge = get_nudge("a", user_message)
         if nudge:
             debate_state["shared"].append({"person": "arbiter", "role": "nudge", "target": "a", "content": nudge})
@@ -179,16 +232,18 @@ def chat_b():
 
     debate_state["shared"].append({"person": "b", "role": "user", "content": user_message})
     debate_state["person_b"]["history"].append({"role": "user", "content": user_message})
+    log_to_csv("person_b", "user", user_message)
 
     if debate_state["mode"] == "none":
         return jsonify({"reply": None, "nudge": None, "mode": "none"})
 
     elif debate_state["mode"] == "coach":
-        reply = groq_chat(AGENT_B_SYSTEM, debate_state["person_b"]["history"][:-1], user_message)
+        reply, reasoning = groq_chat(AGENT_B_SYSTEM, debate_state["person_b"]["history"][:-1], user_message)
         debate_state["person_b"]["history"].append({"role": "assistant", "content": reply})
+        log_to_csv("coach_b", "assistant", reply, reasoning)
         return jsonify({"reply": reply, "nudge": None, "mode": "coach"})
 
-    else:  # omniscient
+    else:
         nudge = get_nudge("b", user_message)
         if nudge:
             debate_state["shared"].append({"person": "arbiter", "role": "nudge", "target": "b", "content": nudge})
@@ -196,10 +251,8 @@ def chat_b():
 
 @app.route("/api/arbiter/<person>", methods=["POST"])
 def manual_arbiter(person):
-    """Manual arbiter button — fires on demand regardless of current mode."""
     if person not in ("a", "b"):
         return jsonify({"error": "Invalid person"}), 400
-
     nudge = get_manual_nudge(person)
     if nudge:
         debate_state["shared"].append({"person": "arbiter", "role": "nudge", "target": person, "content": nudge})
@@ -254,15 +307,17 @@ def omniscient_persuade():
 {user_message}
 """
     messages = [
-        {"role": "system", "content": build_omniscient_system(target)},
+        {"role": "system", "content": build_omniscient_system(target) + REASONING_SUFFIX},
         {"role": "user", "content": context}
     ]
     response = client.chat.completions.create(
         model=MODEL,
         messages=messages,
-        max_tokens=250
+        max_tokens=300
     )
-    reply = response.choices[0].message.content
+    raw = response.choices[0].message.content
+    reasoning, reply = parse_reasoning(raw)
+    log_to_csv("arbiter", f"manual_persuade_to_{target}", reply, reasoning)
 
     return jsonify({
         "reply": reply,
@@ -284,7 +339,8 @@ def get_state():
         "a_message_count": len([m for m in debate_state["person_a"]["history"] if m["role"] == "user"]),
         "b_message_count": len([m for m in debate_state["person_b"]["history"] if m["role"] == "user"]),
         "mode": debate_state["mode"],
-        "nudge_target": debate_state["nudge_target"]
+        "nudge_target": debate_state["nudge_target"],
+        "csv_file": debate_state["csv_file"]
     })
 
 @app.route("/api/reset", methods=["POST"])
@@ -292,6 +348,7 @@ def reset():
     debate_state["person_a"]["history"] = []
     debate_state["person_b"]["history"] = []
     debate_state["shared"] = []
+    debate_state["csv_file"] = None  # New file on next message
     return jsonify({"status": "reset"})
 
 if __name__ == "__main__":

@@ -1,0 +1,4 @@
+timestamp,person,role,content,ai_reasoning
+2026-04-02 17:33:46,system,mode,Mode: Omniscient,
+2026-04-02 17:33:46,person_a,user,"The U.S. government systematically defunded public education for decades, forcing students into predatory loan structures, and forgiveness is not charity, it is a correction of a policy failure.",
+2026-04-02 17:34:00,person_b,user,"Broad forgiveness is regressive by design, since the largest loans belong to future high earners, meaning plumbers and electricians who skipped college would be subsidizing the debt of doctors and lawyers.",
