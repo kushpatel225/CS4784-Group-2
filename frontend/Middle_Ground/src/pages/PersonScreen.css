@@ -393,3 +393,22 @@
   0%, 80%, 100% { transform: translateY(0); }
   40% { transform: translateY(-6px); }
 }
+
+.end-btn {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  padding: 0.4rem 0.9rem;
+  background: none;
+  border: 1px solid rgba(122, 24, 24, 0.4);
+  color: var(--crimson);
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  transition: all 0.2s;
+  border-radius: 2px;
+}
+.end-btn:hover:not(:disabled) {
+  background: var(--crimson);
+  color: var(--parchment);
+  border-color: var(--crimson);
+}
+.end-btn:disabled { opacity: 0.35; cursor: not-allowed; }

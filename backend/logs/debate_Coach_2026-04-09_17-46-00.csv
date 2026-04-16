@@ -1,0 +1,4 @@
+timestamp,person,role,content,ai_reasoning
+2026-04-09 17:46:00,system,mode,Mode: Coach,
+2026-04-09 17:46:00,K,user,Coffee is better than tea.,
+2026-04-09 17:46:01,coach_a,auto_response,"You've made a clear claim that coffee is better than tea, and to sharpen this point, you could emphasize the unique benefits of coffee, such as its richer flavor and higher caffeine content. What specific studies or expert opinions can you cite to support the idea that coffee's benefits outweigh those of tea?","Triggered by: low word count, logical_fallacy. I chose this approach to stay focused on Person A's argument and help them build a stronger case, as the goal is to support and sharpen their point in a live debate. I noticed that the statement ""Coffee is better than tea"" is a general claim that can be strengthened with more specific evidence or reasoning. By acknowledging and building on this claim, I can help Person A present a more convincing argument."

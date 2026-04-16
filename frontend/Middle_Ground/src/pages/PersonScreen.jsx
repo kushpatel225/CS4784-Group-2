@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import ConsentScreen from './ConsentScreen.jsx'
+import SurveyScreen from './SurveyScreen.jsx'
 import './PersonScreen.css'
 
 const CONFIG = {
@@ -13,10 +14,9 @@ export default function PersonScreen({ person, onBack }) {
   const cfg = CONFIG[person]
   const otherCfg = CONFIG[person === 'a' ? 'b' : 'a']
 
-  const [consented, setConsented] = useState(null) // null = loading, false = needs consent, true = consented
+  const [consented, setConsented] = useState(null)
   const [participantName, setParticipantName] = useState('')
   const [thread, setThread] = useState([])
-  const [coachMessages, setCoachMessages] = useState([])
   const [mode, setMode] = useState('coach')
   const [input, setInput] = useState('')
   const [sideInput, setSideInput] = useState('')
@@ -24,11 +24,13 @@ export default function PersonScreen({ person, onBack }) {
   const [loading, setLoading] = useState(false)
   const [sideLoading, setSideLoading] = useState(false)
   const [messageCount, setMessageCount] = useState(0)
+  const [debateEnded, setDebateEnded] = useState(false)
+  const [showSurvey, setShowSurvey] = useState(false)
+  const [endingDebate, setEndingDebate] = useState(false)
   const bottomRef = useRef(null)
   const sideBottomRef = useRef(null)
   const prevThreadLen = useRef(0)
 
-  // On mount, check if already registered
   useEffect(() => {
     async function checkRegistration() {
       try {
@@ -41,6 +43,10 @@ export default function PersonScreen({ person, onBack }) {
           setConsented(true)
         } else {
           setConsented(false)
+        }
+        if (data.debate_ended) {
+          setDebateEnded(true)
+          setShowSurvey(true)
         }
       } catch (e) {
         setConsented(false)
@@ -67,26 +73,37 @@ export default function PersonScreen({ person, onBack }) {
     return () => clearInterval(interval)
   }, [consented])
 
+  const seenAutoIds = useRef(new Set())
+
   async function fetchAll() {
     try {
-      const [threadRes, coachRes, stateRes] = await Promise.all([
+      const [threadRes, stateRes] = await Promise.all([
         fetch('/api/thread'),
-        fetch(`/api/coach/${person}`),
         fetch('/api/state'),
       ])
       const threadData = await threadRes.json()
-      const coachData = await coachRes.json()
       const stateData = await stateRes.json()
-      setThread(threadData.thread || [])
+      const thread = threadData.thread || []
+      setThread(thread)
       setMode(threadData.mode || 'coach')
-      setCoachMessages((coachData.history || []).filter(m => m.role === 'assistant'))
       setMessageCount(stateData.message_counts?.[person] || 0)
+      if (threadData.debate_ended && !debateEnded) {
+        setDebateEnded(true)
+        setShowSurvey(true)
+      }
+      // Pull cross-person omniscient auto-responses into side panel
+      thread.forEach((msg, idx) => {
+        if (msg.role === 'auto_side' && msg.target === person && !seenAutoIds.current.has(idx)) {
+          seenAutoIds.current.add(idx)
+          setSideMessages(prev => [...prev, { role: 'assistant', content: msg.content, auto: true }])
+        }
+      })
     } catch (e) {}
   }
 
   async function sendMessage() {
     const text = input.trim()
-    if (!text || loading || messageCount >= MAX_MESSAGES) return
+    if (!text || loading || messageCount >= MAX_MESSAGES || debateEnded) return
     setInput('')
     setLoading(true)
     try {
@@ -98,6 +115,15 @@ export default function PersonScreen({ person, onBack }) {
       const data = await res.json()
       if (data.error) { alert(data.error); return }
       setMessageCount(data.count || messageCount + 1)
+
+      // Handle auto-response from backend
+      if (data.auto_reply) {
+        setSideMessages(prev => [...prev, {
+          role: 'assistant',
+          content: data.auto_reply,
+          auto: true
+        }])
+      }
       await fetchAll()
     } catch (e) {
       console.error('Send error:', e)
@@ -127,6 +153,20 @@ export default function PersonScreen({ person, onBack }) {
     }
   }
 
+  async function endDebate() {
+    if (!confirm('End the debate for both participants? This cannot be undone.')) return
+    setEndingDebate(true)
+    try {
+      await fetch('/api/end', { method: 'POST' })
+      setDebateEnded(true)
+      setShowSurvey(true)
+    } catch (e) {
+      console.error('End debate error:', e)
+    } finally {
+      setEndingDebate(false)
+    }
+  }
+
   function handleKey(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
   }
@@ -135,30 +175,16 @@ export default function PersonScreen({ person, onBack }) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendSideMessage() }
   }
 
-  function buildDisplay() {
-    const display = []
-    for (const msg of thread) {
-      if (msg.role === 'user') display.push({ type: 'thread', msg })
-      if (msg.role === 'nudge' && msg.target === person) display.push({ type: 'nudge', msg })
-    }
-    return display
-  }
-
-  const display = buildDisplay()
   const limitReached = messageCount >= MAX_MESSAGES
 
-  // Loading state while checking registration
   if (consented === null) return null
 
-  // Show consent screen if not yet registered
   if (!consented) {
-    return (
-      <ConsentScreen
-        person={person}
-        onBack={onBack}
-        onConsented={name => { setParticipantName(name); setConsented(true) }}
-      />
-    )
+    return <ConsentScreen person={person} onBack={onBack} onConsented={name => { setParticipantName(name); setConsented(true) }} />
+  }
+
+  if (showSurvey) {
+    return <SurveyScreen person={person} participantName={participantName} mode={mode} onSubmitted={onBack} />
   }
 
   return (
@@ -172,13 +198,16 @@ export default function PersonScreen({ person, onBack }) {
         <div className="header-right">
           <div className="privacy-badge">{mode === 'none' ? '🚫 No AI' : mode === 'coach' ? '🎓 Coach' : '👁 Omniscient'}</div>
           <div className={`msg-counter ${limitReached ? 'limit' : ''}`}>{messageCount}/{MAX_MESSAGES}</div>
+          <button className="end-btn" onClick={endDebate} disabled={endingDebate || debateEnded}>
+            {endingDebate ? 'Ending...' : 'End Debate'}
+          </button>
         </div>
       </header>
 
       <div className="screen-body">
         <div className="main-panel">
           <main className="messages-area">
-            {display.length === 0 && !loading && (
+            {thread.filter(m => m.role === 'user').length === 0 && !loading && (
               <div className="empty-state">
                 <div className="empty-sigil">{cfg.sigil}</div>
                 <p className="empty-title">Welcome, {participantName}</p>
@@ -186,17 +215,11 @@ export default function PersonScreen({ person, onBack }) {
               </div>
             )}
 
-            {display.map((item, i) => {
-              const { type, msg } = item
-              if (type === 'nudge') return (
-                <div key={`nudge-${i}`} className="message message-nudge">
-                  <div className="message-label">👁 Arbiter</div>
-                  <div className="message-bubble">{msg.content}</div>
-                </div>
-              )
+            {thread.map((msg, i) => {
+              if (msg.role !== 'user') return null
               const isMe = msg.person === person
               return (
-                <div key={`thread-${i}`} className={`message ${isMe ? 'message-me' : 'message-other'}`}>
+                <div key={i} className={`message ${isMe ? 'message-me' : 'message-other'}`}>
                   <div className="message-label">{isMe ? participantName : otherCfg.label}</div>
                   <div className="message-bubble">{msg.content}</div>
                 </div>
@@ -214,7 +237,9 @@ export default function PersonScreen({ person, onBack }) {
           </main>
 
           <footer className="input-area">
-            {limitReached ? (
+            {debateEnded ? (
+              <div className="limit-banner">The debate has ended.</div>
+            ) : limitReached ? (
               <div className="limit-banner">You have reached the maximum of {MAX_MESSAGES} messages.</div>
             ) : (
               <>
@@ -242,11 +267,13 @@ export default function PersonScreen({ person, onBack }) {
             </div>
             <div className="side-messages">
               {sideMessages.length === 0 && (
-                <p className="side-empty">Ask your {mode === 'coach' ? 'coach' : 'arbiter'} anything about the debate.</p>
+                <p className="side-empty">Ask your {mode === 'coach' ? 'coach' : 'arbiter'} anything, or wait for automatic responses.</p>
               )}
               {sideMessages.map((msg, i) => (
                 <div key={i} className={`side-msg side-msg-${msg.role}`}>
-                  <div className="side-msg-label">{msg.role === 'user' ? participantName : mode === 'coach' ? 'Coach' : 'Arbiter'}</div>
+                  <div className="side-msg-label">
+                    {msg.role === 'user' ? participantName : msg.auto ? '⚡ Auto' : mode === 'coach' ? 'Coach' : 'Arbiter'}
+                  </div>
                   <div className="side-msg-bubble">{msg.content}</div>
                 </div>
               ))}
