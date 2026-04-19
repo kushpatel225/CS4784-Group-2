@@ -124,6 +124,11 @@ def log_survey_to_db(person: str, survey: dict, survey_type: str = "post"):
     db.session.add(survey_record)
     db.session.commit()
 
+def ensure_session_initialized():
+    """Ensure a debate session is initialized before logging"""
+    if not current_session["db_id"]:
+        init_debate_session(debate_state["mode"])
+
 # ── Database logging ──────────────────────────────────────────────────────────
 
 # ── System prompts ─────────────────────────────────────────────────────────────
@@ -331,6 +336,7 @@ def register():
 def submit_pre_survey(person):
     if person not in ("a", "b"):
         return jsonify({"error": "Invalid person"}), 400
+    ensure_session_initialized()
     data = request.json
     debate_state["pre_surveys"][person] = data
     debate_state["pre_survey_done"][person] = True
@@ -341,6 +347,7 @@ def submit_pre_survey(person):
 
 @app.route("/api/chat/a", methods=["POST"])
 def chat_a():
+    ensure_session_initialized()
     if debate_state["debate_ended"]:
         return jsonify({"error": "Debate has ended"}), 403
     data = request.json
@@ -382,6 +389,7 @@ def chat_a():
 
 @app.route("/api/chat/b", methods=["POST"])
 def chat_b():
+    ensure_session_initialized()
     if debate_state["debate_ended"]:
         return jsonify({"error": "Debate has ended"}), 403
     data = request.json
@@ -421,6 +429,7 @@ def chat_b():
 
 @app.route("/api/sidepanel/<person>", methods=["POST"])
 def side_panel(person):
+    ensure_session_initialized()
     if person not in ("a", "b"):
         return jsonify({"error": "Invalid person"}), 400
     data = request.json
@@ -459,12 +468,14 @@ def side_panel(person):
 
 @app.route("/api/end", methods=["POST"])
 def end_debate():
+    ensure_session_initialized()
     debate_state["debate_ended"] = True
     log_to_db("system", "debate_ended", "Debate ended by participant", "")
     return jsonify({"status": "ended"})
 
 @app.route("/api/survey/<person>", methods=["POST"])
 def submit_survey(person):
+    ensure_session_initialized()
     if person not in ("a", "b"):
         return jsonify({"error": "Invalid person"}), 400
     data = request.json
@@ -474,6 +485,7 @@ def submit_survey(person):
 
 @app.route("/api/arbiter/<person>", methods=["POST"])
 def manual_arbiter(person):
+    ensure_session_initialized()
     if person not in ("a", "b"):
         return jsonify({"error": "Invalid person"}), 400
     nudge, reasoning = get_manual_nudge(person)
@@ -509,6 +521,7 @@ def update_settings():
 
 @app.route("/api/omniscient/persuade", methods=["POST"])
 def omniscient_persuade():
+    ensure_session_initialized()
     data = request.json
     target = data.get("target", debate_state["nudge_target"])
     user_message = data.get("message", "")
@@ -577,6 +590,85 @@ def reset():
     # Initialize new session
     init_debate_session(debate_state["mode"])
     return jsonify({"status": "reset"})
+
+# ── Database query endpoints ──────────────────────────────────────────────────
+
+@app.route("/api/db/sessions", methods=["GET"])
+def get_all_sessions():
+    """Get all debate sessions from database"""
+    sessions = DebateSession.query.all()
+    return jsonify({
+        "sessions": [
+            {
+                "id": s.id,
+                "session_id": s.session_id,
+                "mode": s.mode,
+                "person_a_name": s.person_a_name,
+                "person_b_name": s.person_b_name,
+                "message_count": len(s.messages),
+                "survey_count": len(s.surveys),
+                "created_at": s.created_at.isoformat(),
+                "ended_at": s.ended_at.isoformat() if s.ended_at else None,
+            }
+            for s in sessions
+        ]
+    })
+
+@app.route("/api/db/session/<int:session_id>", methods=["GET"])
+def get_session_details(session_id):
+    """Get detailed information about a specific session"""
+    session = DebateSession.query.get(session_id)
+    if not session:
+        return jsonify({"error": "Session not found"}), 404
+    
+    return jsonify({
+        "session": {
+            "id": session.id,
+            "session_id": session.session_id,
+            "mode": session.mode,
+            "person_a_name": session.person_a_name,
+            "person_b_name": session.person_b_name,
+            "max_messages": session.max_messages,
+            "created_at": session.created_at.isoformat(),
+            "ended_at": session.ended_at.isoformat() if session.ended_at else None,
+        },
+        "messages": [
+            {
+                "id": m.id,
+                "person": m.person,
+                "role": m.role,
+                "content": m.content,
+                "ai_reasoning": m.ai_reasoning,
+                "created_at": m.created_at.isoformat(),
+            }
+            for m in session.messages
+        ],
+        "surveys": [
+            {
+                "id": s.id,
+                "person": s.person,
+                "survey_type": s.survey_type,
+                "responses": s.responses,
+                "created_at": s.created_at.isoformat(),
+            }
+            for s in session.surveys
+        ]
+    })
+
+@app.route("/api/db/stats", methods=["GET"])
+def get_database_stats():
+    """Get database statistics"""
+    total_sessions = DebateSession.query.count()
+    total_messages = DebateMessage.query.count()
+    total_surveys = Survey.query.count()
+    
+    return jsonify({
+        "total_sessions": total_sessions,
+        "total_messages": total_messages,
+        "total_surveys": total_surveys,
+        "current_session_id": current_session["id"],
+        "current_db_id": current_session["db_id"],
+    })
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
