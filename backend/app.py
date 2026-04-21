@@ -41,6 +41,7 @@ class DebateMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.Integer, db.ForeignKey('debate_sessions.id'), nullable=False)
     person = db.Column(db.String(50), nullable=False)
+    user_name = db.Column(db.String(100), default='')
     role = db.Column(db.String(50), nullable=False)
     content = db.Column(db.Text, nullable=False)
     ai_reasoning = db.Column(db.Text, default='')
@@ -51,6 +52,7 @@ class Survey(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.Integer, db.ForeignKey('debate_sessions.id'), nullable=False)
     person = db.Column(db.String(50), nullable=False)
+    user_name = db.Column(db.String(100), default='')
     survey_type = db.Column(db.String(20), nullable=False)
     responses = db.Column(db.JSON, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -101,9 +103,14 @@ def log_to_db(person: str, role: str, content: str, ai_reasoning: str = ""):
     """Log message to database"""
     if not current_session["db_id"]:
         return
+    # Get the user's name if person is 'a' or 'b'
+    user_name = ""
+    if person in ["a", "b"]:
+        user_name = debate_state["names"].get(person, f"Person {person.upper()}")
     message = DebateMessage(
         session_id=current_session["db_id"],
         person=person,
+        user_name=user_name,
         role=role,
         content=content,
         ai_reasoning=ai_reasoning
@@ -115,9 +122,12 @@ def log_survey_to_db(person: str, survey: dict, survey_type: str = "post"):
     """Log survey responses to database"""
     if not current_session["db_id"]:
         return
+    # Get the user's name
+    user_name = debate_state["names"].get(person, f"Person {person.upper()}")
     survey_record = Survey(
         session_id=current_session["db_id"],
         person=person,
+        user_name=user_name,
         survey_type=survey_type,
         responses=survey
     )
