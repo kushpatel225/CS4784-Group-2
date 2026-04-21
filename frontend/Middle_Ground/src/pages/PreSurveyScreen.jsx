@@ -99,21 +99,6 @@ export default function PreSurveyScreen({ person, participantName, onCompleted }
               </div>
             </div>
           ))}
-
-          <div className="survey-question">
-            <div className="survey-q-label">Do you think your position will change by the end of this conversation?</div>
-            <div className="survey-scale">
-              {['Yes', 'No', 'Maybe'].map(opt => (
-                <button
-                  key={opt}
-                  className={`scale-btn scale-btn--text ${expectsChange === opt ? 'selected' : ''}`}
-                  onClick={() => setExpectsChange(opt)}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
         {error && <p className="survey-error">{error}</p>}
