@@ -11,6 +11,7 @@ export default function OmniscientScreen({ onBack }) {
   const [context, setContext] = useState({ person_a: [], person_b: [] })
   const [showTranscripts, setShowTranscripts] = useState(true)
   const bottomRef = useRef(null)
+  const [names, setNames] = useState({ a: 'Person A', b: 'Person B' })
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -32,6 +33,7 @@ export default function OmniscientScreen({ onBack }) {
       setStats(stateData)
       setMode(stateData.mode)
       setNudgeTarget(stateData.nudge_target)
+      setNames(stateData.names || { a: 'Person A', b: 'Person B' })
       setContext(await contextRes.json())
     } catch (e) {}
   }
@@ -162,12 +164,12 @@ export default function OmniscientScreen({ onBack }) {
       {/* Stats */}
       <div className="stats-bar">
         <div className="stat">
-          <span className="stat-label">Person A</span>
+          <span className="stat-label">{names.a}</span>
           <span className="stat-count">{stats.a_message_count} msgs</span>
         </div>
         <div className="stat-divider">|</div>
         <div className="stat">
-          <span className="stat-label">Person B</span>
+          <span className="stat-label">{names.b}</span>
           <span className="stat-count">{stats.b_message_count} msgs</span>
         </div>
         <div className="stat-divider">·</div>
@@ -188,12 +190,12 @@ export default function OmniscientScreen({ onBack }) {
         <div className="transcripts-panel">
           <div className="transcript-col transcript-a">
             <div className="transcript-header">Person A</div>
-            {renderTranscript(context.person_a, 'A')}
+            {renderTranscript(context.person_a, names.a)}
           </div>
           <div className="transcript-divider" />
           <div className="transcript-col transcript-b">
             <div className="transcript-header">Person B</div>
-            {renderTranscript(context.person_b, 'B')}
+            {renderTranscript(context.person_b, names.b)}
           </div>
         </div>
       )}
