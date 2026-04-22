@@ -5,7 +5,7 @@ export default function App({ onNavigate }) {
     <div className="landing">
       <div className="landing-header">
         <div className="ornament">✦</div>
-        <h1 className="landing-title">Arbiter</h1>
+        <h1 className="landing-title">OpenDebate</h1>
         <div className="ornament-line"><span>✦ ✦ ✦</span></div>
       </div>
 
