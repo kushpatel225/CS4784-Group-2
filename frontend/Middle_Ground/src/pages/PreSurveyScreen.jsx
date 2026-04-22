@@ -35,7 +35,6 @@ export default function PreSurveyScreen({ person, participantName, onCompleted }
   const [scaleAnswers, setScaleAnswers] = useState(
     Object.fromEntries(SCALE_QUESTIONS.map(q => [q.key, null]))
   )
-  const [expectsChange, setExpectsChange] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -45,15 +44,15 @@ export default function PreSurveyScreen({ person, participantName, onCompleted }
 
   async function handleSubmit() {
     const unanswered = SCALE_QUESTIONS.filter(q => scaleAnswers[q.key] === null)
-    if (unanswered.length > 0 || expectsChange === null) {
+    if (unanswered.length > 0) {
       setError('Please answer all questions before continuing.')
       return
     }
 
     setLoading(true)
     setError('')
-
-    const payload = { ...scaleAnswers, expects_change: expectsChange }
+    
+    const payload = { ...scaleAnswers }
 
     try {
       const res = await fetch(`/api/pre_survey/${person}`, {
