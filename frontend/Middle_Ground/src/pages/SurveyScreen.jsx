@@ -14,7 +14,6 @@ const BASE_QUESTIONS = [
   { key: 'felt_heard', label: 'Did you feel heard by the other participant?', help: '1 = Not at all, 5 = Completely', type: 'scale' },
   { key: 'new_information', label: "Did any new information or arguments come up that you hadn't considered before?", options: ['Yes', 'No'], type: 'choice' },
   { key: 'new_info_influence', label: 'Did that information influence your thinking?', help: '1 = Not at all, 5 = Significantly', type: 'scale', condition: (a) => a.new_information === 'Yes' },
-  { key: 'reached_depth', label: "Did the conversation reach a depth you don't think it would have on its own?", options: ['Yes', 'No', 'Unsure'], type: 'choice' },
   { key: 'comfort_expressing', label: 'How comfortable were you expressing your views?', help: '1 = Very uncomfortable, 5 = Very comfortable', type: 'scale' },
   { key: 'opposing_persuasive', label: 'How persuasive did you find the opposing argument?', help: '1 = Not persuasive at all, 5 = Very persuasive', type: 'scale' },
 ]
@@ -49,7 +48,17 @@ const AI_ENGAGEMENT_QUESTIONS = [
   },
 ]
 
-// Q16 — omniscient only (scale 1–5 with custom labels)
+// Q16 — coach + omniscient (Yes / No / Unsure)
+const AI_REACHED_DEPTH = [
+  {
+    key: 'reached_depth',
+    label: 'Did the conversation reach a depth you don\'t think it would have on its own?',
+    options: ['Yes', 'No', 'Unsure'],
+    type: 'choice',
+  },
+]
+
+// Q17 — omniscient only (scale 1–5 with custom labels)
 const OMNISCIENT_BIAS_QUESTION = {
   key: 'ai_bias',
   label: 'Did the assistance seem to favor one side over the other?',
@@ -68,6 +77,7 @@ export default function SurveyScreen({ person, participantName, mode, onSubmitte
     ...(isAI ? AI_SCALE_QUESTIONS : []),
     ...(isAI ? AI_YNS_QUESTIONS : []),
     ...(isAI ? AI_ENGAGEMENT_QUESTIONS : []),
+    ...(isAI ? AI_REACHED_DEPTH : []),
     ...(isOmniscient ? [OMNISCIENT_BIAS_QUESTION] : []),
   ]
 
