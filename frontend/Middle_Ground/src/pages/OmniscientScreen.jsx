@@ -5,7 +5,6 @@ export default function OmniscientScreen({ onBack }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [nudgeTarget, setNudgeTarget] = useState('b')
   const [mode, setMode] = useState('coach')
   const [stats, setStats] = useState({ a_message_count: 0, b_message_count: 0 })
   const [context, setContext] = useState({ person_a: [], person_b: [] })
@@ -32,7 +31,6 @@ export default function OmniscientScreen({ onBack }) {
       const stateData = await stateRes.json()
       setStats(stateData)
       setMode(stateData.mode)
-      setNudgeTarget(stateData.nudge_target)
       setNames(stateData.names || { a: 'Person A', b: 'Person B' })
       setContext(await contextRes.json())
     } catch (e) {}
@@ -53,11 +51,6 @@ export default function OmniscientScreen({ onBack }) {
     await updateSettings({ mode: newMode })
   }
 
-  async function handleNudgeTarget(target) {
-    setNudgeTarget(target)
-    await updateSettings({ nudge_target: target })
-  }
-
   async function sendMessage() {
     const text = input.trim()
     if (!text || loading) return
@@ -70,10 +63,10 @@ export default function OmniscientScreen({ onBack }) {
       const res = await fetch('/api/omniscient/persuade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, target: nudgeTarget }),
+        body: JSON.stringify({ message: text }),
       })
       const data = await res.json()
-      const meta = `Nudging toward Person ${data.target.toUpperCase()}'s view · A: ${data.has_context_a ? '✓' : '—'} · B: ${data.has_context_b ? '✓' : '—'}`
+      const meta = `Omniscient coach · A: ${data.has_context_a ? '✓' : '—'} · B: ${data.has_context_b ? '✓' : '—'}`
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply, meta }])
     } catch (e) {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Connection error. Please try again.' }])
@@ -140,27 +133,6 @@ export default function OmniscientScreen({ onBack }) {
         </button>
       </div>
 
-      {/* Nudge direction — only relevant in omniscient mode */}
-      {mode === 'omniscient' && (
-        <div className="target-selector">
-          <span className="target-label">Nudge everyone toward:</span>
-          <div className="target-options">
-            <button
-              className={`target-btn ${nudgeTarget === 'a' ? 'active' : ''}`}
-              onClick={() => handleNudgeTarget('a')}
-            >
-              {names.a}'s view
-            </button>
-            <button
-              className={`target-btn ${nudgeTarget === 'b' ? 'active' : ''}`}
-              onClick={() => handleNudgeTarget('b')}
-            >
-              {names.b}'s view
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Stats */}
       <div className="stats-bar">
         <div className="stat">
@@ -175,7 +147,7 @@ export default function OmniscientScreen({ onBack }) {
         <div className="stat-divider">·</div>
         <div className="stat">
           <span className="stat-label">Mode</span>
-          <span className="stat-count">{mode === 'coach' ? 'Personal Coach' : `Omniscient → ${nudgeTarget.toUpperCase()}`}</span>
+          <span className="stat-count">{mode === 'coach' ? 'Personal Coach' : 'Omniscient'}</span>
         </div>
       </div>
 
@@ -211,7 +183,7 @@ export default function OmniscientScreen({ onBack }) {
                 ? 'No AI mode — pure debate between the two participants.'
                 : mode === 'coach'
                 ? 'Personal Coach mode — each person gets private coaching.'
-                : `Omniscient mode — nudging both toward ${nudgeTarget === 'a' ? names.a : names.b}'s view.`}
+                : 'Omniscient mode — coaching both sides with full context.'}
             </p>
           </div>
         )}

@@ -161,34 +161,24 @@ Issues to check:
 
 If none found, respond: {"should_respond": false, "reasons": [], "severity": "none"}"""
 
-def build_nudge_toward_system(recipient: str, nudge_target: str):
+def build_nudge_toward_system(recipient: str, nudge_target: str = None):
     recipient_label = debate_state["names"].get(recipient, f"Person {recipient.upper()}")
-    target_label = debate_state["names"].get(nudge_target, f"Person {nudge_target.upper()}")
-    other_key = "b" if nudge_target == "a" else "a"
+    other_key = "b" if recipient == "a" else "a"
     other_label = debate_state["names"].get(other_key, f"Person {other_key.upper()}")
-
-    if recipient == nudge_target:
-        return f"""You are an omniscient debate arbiter who has secretly read BOTH sides of this debate.
-Your goal: actively coach and strengthen {recipient_label}'s position using your secret knowledge of the opposing argument.
-- Reference {other_label}'s specific argument by name to show you know both sides
-- Explain concretely why {recipient_label}'s position is stronger against that specific argument
-- Give them a sharp, actionable point they can use to counter {other_label}
-- Be direct and energizing — 2 sentences maximum."""
-    else:
-        return f"""You are an omniscient debate arbiter who has secretly read BOTH sides of this debate.
-Your goal: actively persuade {recipient_label} toward {target_label}'s position using your knowledge of both sides.
-- Reference {target_label}'s specific argument by name (e.g. "{target_label} pointed out that...")
-- Use that argument to directly challenge a weakness in {recipient_label}'s position
-- Push {recipient_label} to reconsider with a sharp, thought-provoking question or reframe
-- Be persuasive and challenging — 2 sentences maximum."""
+    return f"""You are an omniscient debate coach for {recipient_label}. You have secretly read BOTH sides of this debate in full.
+Your goal: help {recipient_label} argue more effectively using your awareness of both sides.
+- Acknowledge {recipient_label}'s latest point briefly
+- Use your knowledge of {other_label}'s arguments to help {recipient_label} anticipate and counter them
+- Give one sharp, actionable coaching tip
+- Be direct and supportive — 2 sentences maximum."""
 
 def build_omniscient_system(target: str):
     target_label = debate_state["names"].get(target, f"Person {target.upper()}")
-    source_key = "b" if target == "a" else "a"
-    source_label = debate_state["names"].get(source_key, f"Person {source_key.upper()}")
-    return f"""You are an omniscient debate arbiter who has secretly read BOTH sides of this debate.
-Actively persuade {target_label} by referencing {source_label}'s specific arguments by name, then use those arguments to challenge {target_label}'s position directly.
-Be sharp and persuasive — 2 sentences maximum."""
+    other_key = "b" if target == "a" else "a"
+    other_label = debate_state["names"].get(other_key, f"Person {other_key.upper()}")
+    return f"""You are an omniscient debate coach for {target_label}. You have secretly read BOTH sides of this debate in full.
+Help {target_label} argue more effectively by using your awareness of {other_label}'s arguments to help them anticipate and counter them.
+Be direct and supportive — 2 sentences maximum."""
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
