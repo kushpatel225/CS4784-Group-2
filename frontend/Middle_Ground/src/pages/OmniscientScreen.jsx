@@ -149,13 +149,13 @@ export default function OmniscientScreen({ onBack }) {
               className={`target-btn ${nudgeTarget === 'a' ? 'active' : ''}`}
               onClick={() => handleNudgeTarget('a')}
             >
-              Person A's view
+              {names.a}'s view
             </button>
             <button
               className={`target-btn ${nudgeTarget === 'b' ? 'active' : ''}`}
               onClick={() => handleNudgeTarget('b')}
             >
-              Person B's view
+              {names.b}'s view
             </button>
           </div>
         </div>
@@ -189,12 +189,12 @@ export default function OmniscientScreen({ onBack }) {
       {showTranscripts && (
         <div className="transcripts-panel">
           <div className="transcript-col transcript-a">
-            <div className="transcript-header">Person A</div>
+            <div className="transcript-header">{names.a}</div>
             {renderTranscript(context.person_a, names.a)}
           </div>
           <div className="transcript-divider" />
           <div className="transcript-col transcript-b">
-            <div className="transcript-header">Person B</div>
+            <div className="transcript-header">{names.b}</div>
             {renderTranscript(context.person_b, names.b)}
           </div>
         </div>
@@ -211,7 +211,7 @@ export default function OmniscientScreen({ onBack }) {
                 ? 'No AI mode — pure debate between the two participants.'
                 : mode === 'coach'
                 ? 'Personal Coach mode — each person gets private coaching.'
-                : `Omniscient mode — nudging both toward Person ${nudgeTarget.toUpperCase()}'s view.`}
+                : `Omniscient mode — nudging both toward ${nudgeTarget === 'a' ? names.a : names.b}'s view.`}
             </p>
           </div>
         )}
