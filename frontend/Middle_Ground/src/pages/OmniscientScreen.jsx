@@ -182,7 +182,7 @@ export default function OmniscientScreen({ onBack }) {
       {/* Live transcripts */}
       <div className="transcripts-toggle" onClick={() => setShowTranscripts(p => !p)}>
         <span>Live Transcripts</span>
-        <span className="toggle-counts">A: {stats.a_message_count} · B: {stats.b_message_count}</span>
+        <span className="toggle-counts">{names.a}: {stats.a_message_count} · {names.b}: {stats.b_message_count}</span>
         <span className="toggle-arrow">{showTranscripts ? '▲' : '▼'}</span>
       </div>
 
