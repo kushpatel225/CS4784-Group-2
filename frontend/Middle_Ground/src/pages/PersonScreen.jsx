@@ -229,7 +229,7 @@ export default function PersonScreen({ person, onBack }) {
           <span className="person-name">{participantName}</span>
         </div>
         <div className="header-right">
-          <div className="privacy-badge">{mode === 'none' ? '🚫 No AI' : mode === 'coach' ? '🎓 Coach' : '👁 Omniscient'}</div>
+          <div className="privacy-badge">{mode === 'none' ? 'No AI' : 'AI Assisted'}</div>
           <div className={`msg-counter ${limitReached ? 'limit' : ''}`}>{messageCount}/{MAX_MESSAGES}</div>
           <button className="end-btn" onClick={endDebate} disabled={endingDebate || debateEnded || !minTurnsMet} title={!minTurnsMet ? `Both participants must send at least ${MIN_MESSAGES} messages before ending` : ''}>
             {endingDebate ? 'Ending...' : !minTurnsMet ? `Min ${MIN_MESSAGES} turns required` : 'End Debate'}
@@ -296,23 +296,23 @@ export default function PersonScreen({ person, onBack }) {
         {mode !== 'none' && (
           <div className="side-panel">
             <div className="side-panel-header">
-              {mode === 'coach' ? '🎓 Your Coach' : '👁 Arbiter'}
+              Your Assistant
             </div>
             <div className="side-messages">
               {sideMessages.length === 0 && (
-                <p className="side-empty">Ask your {mode === 'coach' ? 'coach' : 'arbiter'} anything, or wait for automatic responses.</p>
+                <p className="side-empty">Ask your assistant anything, or wait for automatic responses.</p>
               )}
               {sideMessages.map((msg, i) => (
                 <div key={i} className={`side-msg side-msg-${msg.role}`}>
                   <div className="side-msg-label">
-                    {msg.role === 'user' ? participantName : msg.auto ? '⚡ Auto' : mode === 'coach' ? 'Coach' : 'Arbiter'}
+                    {msg.role === 'user' ? participantName : msg.auto ? '⚡ Auto' : 'Assistant'}
                   </div>
                   <div className="side-msg-bubble">{msg.content}</div>
                 </div>
               ))}
               {sideLoading && (
                 <div className="side-msg side-msg-assistant">
-                  <div className="side-msg-label">{mode === 'coach' ? 'Coach' : 'Arbiter'}</div>
+                  <div className="side-msg-label">Assistant</div>
                   <div className="side-msg-bubble typing"><span /><span /><span /></div>
                 </div>
               )}
