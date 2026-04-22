@@ -28,9 +28,7 @@ export default function App({ onNavigate }) {
       </div>
 
       <button className="omniscient-btn" onClick={() => onNavigate('omniscient')}>
-        <span className="eye-icon">👁</span>
         <span>Admin Page</span>
-        <span className="eye-icon">👁</span>
       </button>
     </div>
   )
