@@ -7,13 +7,14 @@ To run local version:
 3. cd backend
 4. pip3 install -r requirements.txt
 5. You will need a free Groq API key to use the local version (https://console.groq.com/home)
-6. python3 app.py
+6. Paste the API key you have generated into the backend's .env file
+7. python3 app.py
 
-7. Open a new terminal
-8. cd frontend/Middle_Ground/src
-9. npm install
-10. npm run dev
-11. Control + Click the link or open http://localhost:5173/ in two tabs to get two clients.
+8. Open a new terminal
+9. cd frontend/Middle_Ground/src
+10. npm install
+11. npm run dev
+12. Control + Click the link or open http://localhost:5173/ in two tabs to get two clients.
 
 
 
