@@ -33,6 +33,8 @@ python built in libraries (uuid, json, os, datetime)
 groq (Python SDK)
 React
 ReactDOM
+Node
+Node (runtime)
 Vite
 @vitejs/plugin-react
 eslint
@@ -44,9 +46,11 @@ eslint-plugin-react-refresh
 globals
 Groq API
 Google Fonts
+google-generativeai
 SQLite
 Meta's Llama 3.3 70B via Groq
 OpenAI
+openai
 psycopg2-binary
 python-dateutil
 gunicorn
